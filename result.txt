@@ -1,0 +1,31 @@
+Jiayao Wu
+
+Final project result
+
+c) range 1-10000, 1000000 operations
+when seed = 1, num of steps = 6446597 
+     seed = 2, num of steps = 6435737
+     seed = 3, num of steps = 6438950
+     seed = 4, num of steps = 6442574
+     seed = 5, num of steps = 6436851
+     seed = 6, num of steps = 6437704
+     seed = 7, num of steps = 6445604
+     seed = 8, num of steps = 6440387
+     seed = 9, num of steps = 6440731
+     seed = 10, num of steps = 6445820
+     average = 6441096
+
+
+d) range 1-100000, 10000000 operations
+when seed = 1, num of steps = 80212038 
+     seed = 2, num of steps = 80217552
+     seed = 3, num of steps = 80211172
+     seed = 4, num of steps = 80236639
+     seed = 5, num of steps = 80225933
+     seed = 6, num of steps = 80217088
+     seed = 7, num of steps = 80201501
+     seed = 8, num of steps = 80228619
+     seed = 9, num of steps = 80198892
+     seed = 10, num of steps = 80197906
+     average = 80214734
+

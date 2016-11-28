@@ -1,0 +1,426 @@
+Jiayao Wu
+jwu86
+
+Program overview:
+First part: create a generic and complex data structure using template.
+It is a multi-level hash (MLH) data structure. It has insert, get, delete 
+and print functions. The program also prompts the user for number of operations,
+maximum range and starting seed, which  utilizes the random generator to randomly
+generate key, insert, get and delete functions. 
+
+Second part: real application of simulating a Vehicle Service center
+by using the MLH structure. The vehicles include cars, hybrids, motorcycles
+and buses. The operations include adding a vehicle to the center, adding tasks
+to a vehicle, checking out a vehicle and printing its bill, view the status of 
+all vehicles and view the status of a single vehicle.
+
+-------------------------------------------------------------------------------
+
+Part 1:
+It includes a Node class, a MLH class and a driver.
+
+Node class:
+each node has:
+-int size
+-int level
+-int parent index that indicates which slot in the parent
+pointer array it's coming from (need it since I have to delete a node
+from the parent)
+*But, later I realized I can actually use ML_hash, but I don't have time
+to go back and change
+-an array of pointers to other nodes, an array of data 
+pointers and an array of key (type int). All of size MAX_SIZE (which is 5 here)
+
+Function details:
+--->Node(): a constructor that sets each thing in pointers and data array to NULL and
+each integer in the key array to 0, initializes the constants to 0 and 
+parent pointer to NULL
+
+--->~Node(): a destructor that deletes the data pointers
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+MLH class
+-Has a firstNode pointer
+-numHashNode that counts number of hash nodes
+-an integer array of size 9 called level[] that helps me see how many nodes
+there are on each level so that I can find max level
+-numOfKV that counts for number of records
+
+
+Function overviews:
+--->MLH()
+Idea: the constructor that makes an empty root node
+and initializes other private variables
+
+
+--->~MLH()
+Idea: the destructor that destroys everything in the MLH to prevent memory leak
+
+How it works:
+Calls my helper method that does recursion on the firstNode
+
+
+-void deleteNode(Node<NODETYPE> *ptr)
+Idea: recursively deletes each node in the structure
+
+How it works:
+Use a for loop to see which child of this ptr node is not NULL, then
+call deleteNode function on that child.
+
+Outside the for loop, deletes the ptr by deleting from the parent and
+set it to NULL afterwards.
+
+
+--->bool MLH_insert( int key, NODETYPE *data)
+Idea: 
+Insert the key and data pointer into the MLH if the key does not exit already yet.
+Return true if inserted successfully, false otherwise
+
+How it works:
+Set currptr equal to the firstNode, then goes through a while loop if size of
+currptr > 5. Each time, use ML_hash function to see where this key should be
+going to by using currptr->pointers[hashcode]. If this points to NULL, this means
+we need to create a leaf node (including update the level array, numHashNode, the 
+parent pointer etc.)
+Then points currptr to currptr->pointers[hashcode] to go to the next level which then
+goes back to the while loop.
+
+Now, ourside the while loop, we know the size of currptr <= 5. Use another while
+loop if currptr's size = 5 since we need to explode in this case. First, go through
+to see if this key already exists, if so return false immediately. If not, then
+explode! For each key in the array (use a for loop), find the hashcode for the 
+next level. Create a new node if pointers[hashcode] is NULL. Then just insert each 
+key and data into an empty space in currptr->pointers[hashcode] node.
+
+After exploding, currptr's size < 5, need to first check if this key already exists.
+If so, return false. If not, then just insert it into the next empty slot in the array.
+Then, need to increment the size of the parents by going through a while loop. Finally,
+return true.
+
+
+--->NODETYPE* MLH_get(int key)
+Idea:
+It receives a key and returns a pointer to the corresponding data if the key exists.
+Return NULL if cannot find this key.
+
+How it works:
+Set currptr to firstNode. Similar to the first step in insert, if currptr's size > 5,
+then get the hashcode of the key for the next level. If currptr->pointers[hashcode] is
+NULL, then we know the key is not there and return NULL. Otherwise, set currptr to
+currptr->pointers[hashcode] which goes back to the top of the while loop. 
+
+Outside the while loop, we know that we reached a node of size <= 5. Just traverse
+through the key array to see if the key we are looking for exists. If so, return
+the corresponding data pointer. If not, return NULL.
+
+
+--->NODETYPE* MLH_delete(int key)
+Idea:
+It receives a key, removes the corresponding data and returns a pointer to the removed
+data. Return NULL if cannot find the key.
+
+How it works:
+The first part is same as MLH_get function if currptr's size > 5.
+
+Outside the while loop, we have reached a node of size <= 5. By traversing through
+the key array, if the key we are looking for does not exist, just return NULL. If
+the key exists, first get a pointer that points to the corresponding data since we need
+to return it in the end. Then, set that data pointer to NULL, key to 0, decrement currptr's
+size and numOfKV. If currptr's size is 0 and it's not the root node (firstNode), we need
+to delete currptr by deleting from the parent as always. 
+
+Now need to decrement the size of the parents too (similar mechanism as incrementing the 
+size of parents in MLH_insert). While doing this for each parent, need to check if its
+size is 5. If so, we need to collapse. If not, just point parent to parent's parent and it
+will go back to the top of the while loop. Collapsing is basically just collecting all the
+key and data from its children nodes. First, need to see which children is not NULL. For
+the children that's not NULL, also need to see which key and data actually are not NULL.
+If found such key and data, just fill them into the parent node one by one. Afterwards,
+delete the children that's not NULL.
+
+One more thing to mention, each time we remove a node, need to decrement the number of nodes
+on that level in the level[].
+
+
+--->void print() const
+Idea: the print function that prints all the keys and object associated with these keys
+
+How it works:
+Calls the print(Node<NODETYPE> *ptr) function on the first node in order to do recursion.
+
+
+--->void print(Node<NODETYPE> *ptr) const
+Idea: The helper function to print recursively
+
+How it works:
+Set currptr equal to ptr. If currptr's size <= 5, then we know it's a leaf node. Just print
+out the key and data associated. If currptr's size > 5, then we know it has children. So
+just call this helper print function again on any child that's not NULL. In order words,
+call print(curr->pointers[i]) if curr->pointers[i] is not NULL.
+
+
+--->ostream &operator<<(ostream &output, const MLH<NODETYPE> &list)
+Idea: to overload the "<<" operator
+
+How it works:
+It first prints out the number of objects, number of hash nodes, maximum level so far,
+and the steps performed so far. Then need to see if set_print (a variable) is 1 or 2. If
+it's 1, then just call the print() function since it's taking care of everything else already.
+If not, do nothing. 
+
+
+--->int findMaxLevel() const
+Idea: since I am using a level[] to keep track of how many nodes there are on each level.
+Then I can use this to determine the max level. Return the max level.
+
+How it works:
+Traverse through the array, return the first position that gives you a 0 because that means
+the there are nodes on previous levels. Also, since my root's level is actually a 0,
+so instead returning i - 1, I am returning i - 1 + 1 = i.
+If cannot find such position, this means there are nodes on every level. Just return 9
+in this case.
+
+--->void MLH_set_print(int num)
+Idea: it's used to determine if need to print all the key and data.
+
+How it works:
+Set set_print = num. If num is 1, then need to print all the key and data.
+If num is 2, then don't print the key and data.
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Driver:
+Basically in a similar format as the driver for project3
+It prompts user for num of operations, max range and starting seed.
+Creats a MLH of integers.
+For the print function, it sets up set_print depending on the max range.
+If man range > 100, then MLH_set_print(2) which means doesn't need to print key and data.
+Set to 1 otherwise.
+
+-------------------------------------------------------------------------------
+Part 2:
+Classes involved:
+Vehicle
+Car
+Hybrid
+Motorcycle
+Bus
+Task
+List
+ServiceCenterDriver
+
+Different classes:
+<<<Vehicle>>>
+the base class for Car, Motorcycle, Motorcycle and Bus
+-Data fields:
+int id
+int modelYear
+string color
+double mileage
+List *listOfTask
+double costPart
+double costLabor
+
+
+-methods:
+1. Vehicle(int, int, const string &, double)
+-constructor that sets up the private variables
+
+2. ~Vehicle()
+-destructor that frees the listOfTask
+
+3. virtual void taskList()
+-since I am making different list of tasks for different vehicles
+so I chose to use virtual
+All vehicles have 3 common operations: Maintenance, brake change and tune-up
+
+4. void printBill()
+-print the bill of this vehicle
+it calls the print() function of listOfTask
+
+5. virtual void print() const
+-since each vehicle is different, so I chose to use virtual here again
+But since all vehicles has 4 things in common, so in this method
+print those 4 parameters(id, year, color and mileage). Then in my
+other classes that extend this class, add more parameters to the print
+
+6. ostream &operator<<( ostream &, const Vehicle &)
+-overload the << operator by simply calling the print() function
+
+7. virtual string insertTask(int choice)
+-return empty string. It will be implemented more in other classes
+
+8. void addTask(string &)
+-prompt the user for cost of labor and cost of part. Then create a new Task
+and insert it into the listOfTask
+
+
+
+<<<Car>>> that inherits Vehicle
+-Data fields:
+doubel engineSize
+string gas (premium, plus or regular)
+string pollutionLevel (low, medium or high)
+
+-methods:
+1. Car(int, int, const string &, double, double, const string &, const string &)
+-constructor
+
+2. virtual void taskList()
+-The tasks specific to Car are: Engine Diagnostics and Operation, Oil Change
+and Cooling System Repair
+
+3. virtual void print() const
+-print extra parameters
+
+4. virtual string insertTask(int choice)
+-using switch to return a string that corresponds to the choice
+
+5. ostream &operator<<( ostream &, const Car &)
+-same as Vehicle
+
+
+
+<<<Hybrid>>> that inherits Car
+-Data fields:
+double motorPower
+double totalUsage
+double batteryCapacity
+
+-methods:
+1. Hybrid(int, int, const string &, double, double, const string &, const string &
+double, double, double)
+-constructor
+
+2. virtual void taskList()
+-The tasks specific to Hybrid are: Update Battery and Motor Control Fix 
+
+3. virtual void print() const
+-print extra parameters
+
+4. virtual string insertTask(int choice)
+-using switch to return a string that corresponds to the choice
+
+5. ostream &operator<<( ostream &, const Hybrid &)
+-same as Vehicle
+
+
+<<<Motorcycle>>> that inherits Vehicle
+-Data fields
+double enginesize
+double frontSize //for wheel
+double backSize  //for wheel
+
+-methods:
+1. Motorcycle(int, int, const string &, double, double, double, double)
+-constructor
+
+2. virtual void taskList()
+-The tasks specific to Motorcycle are: Change Front Wheel, change Back Wheel and Engine
+Diagnostics and Operation
+
+3. virtual void print() const
+-print extra parameters
+
+4. virtual string insertTask(int choice)
+-using switch to return a string that corresponds to the choice
+
+5. ostream &operator<<( ostream &, const Motorcycle &)
+-same as Vehicle
+
+
+<<<Bus>>> that inherits Vehicle
+-Data fields
+int passengerCapacity
+
+-methods:
+1. Bus(int, int, const string &, double, int)
+-constructor
+
+2. virtual void taskList() 
+-The tasks specific to Bus are: Adding seats, Remove seats and clean the bus
+
+3. virtual void print() const
+-print extra parameters
+
+4. virtual string insertTask(int choice)
+-using switch to return a string that corresponds to the choice
+
+5. ostream &operator<<( ostream &, const Bus &)
+-same as Vehicle
+
+
+
+<<<Task>>>
+-Data fields:
+string name;  (name of the task)
+double costOfLabor;
+double costOfPart;
+
+-methods:
+1. Task(const string &, const double, const double):
+-constructor that sets up name, costOfLabor and costOfPart
+
+2. void print() const
+-prints the name of the task, cost of labor and cost of part
+
+3. double getLabor() const
+-returns the costOfLabor
+
+4. double getPart()
+-returns the costOfPart
+
+
+<<<List>>>
+It represents a list of tasks. Each node in the list is represents a task
+
+LNode:
+-Data fields
+Task content
+next pointer
+friend class List
+
+-methods:
+1. LNode (const Task &task) 
+-constructor that initialize next ptr to NULL
+and content to task
+
+2. Task get_Task() 
+-returns the task
+
+List:
+-Data fields:
+LNode *first_ptr
+double sumOfLaborCost
+double sumOfPartCost
+
+-methods:
+1. List()
+-constructor that intializes first_ptr, sumOfLaborCost and sumOfPartCost
+
+2. ~List()
+-destructor that deletes each node in the list to prevent memory leak
+
+3. void insert(const Task &task)
+-insert a task to the head of the list
+everytime when inserting, increment the sumOfLaborCost and sumOfPartCost
+by using task.getLabor() and task.getPart()
+
+4. void print() const
+-print all the tasks currently in the list and the total costs
+
+
+<<<ServiceCenterDriver>>>
+includes the main method
+Has a menu repeated for the following operations:
+Add a vehicle, add task to a vehicle, check out a vehicle and print its bill,
+view report of all vehicles and view status of a specific vehicle or exit the program
+-Also prompts the user for information about a vehicle when adding a vehicle
+
+
+The problems I have:
+1. memory leak: It's giving me double free error. 
+I tried to fix it but it's still giving me some error. Also, it has memory leak
+
+2. for the driver, I assumed all the input are valid, so I didn't use cin.ignore() such
+thing
